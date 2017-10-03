@@ -52,9 +52,24 @@ public class MorseDecoder {
         double[] returnBuffer = new double[totalBinCount];
 
         double[] sampleBuffer = new double[BIN_SIZE * inputFile.getNumChannels()];
-        for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
-            // Get the right number of samples from the inputFile
-            // Sum all the samples together and store them in the returnBuffer
+        double total = 0;
+
+        if (returnBuffer.length == sampleBuffer.length) {
+
+            for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
+                int framesRead = inputFile.readFrames(sampleBuffer, BIN_SIZE);
+
+                if (framesRead > BIN_SIZE) {
+                    throw new RuntimeException("framesRead should be 100");
+                }
+
+                for (int i = 0; i < framesRead; i++) {
+                    sampleBuffer[binIndex] = Math.abs(sampleBuffer[binIndex]);
+                    total += sampleBuffer[binIndex];
+                    returnBuffer[i] = total;
+                }
+             }
+
         }
         return returnBuffer;
     }
@@ -77,7 +92,31 @@ public class MorseDecoder {
      * @return the Morse code string of dots, dashes, and spaces
      */
     private static String powerToDotDash(final double[] powerMeasurements) {
-        return "";
+        boolean isLong = false;
+        boolean isShort = false;
+        boolean isSilence = false;
+
+        int count = 0;
+
+        for (int i = 0; i < powerMeasurements.length; i++) {
+          if (powerMeasurements[i] >= POWER_THRESHOLD) {
+            count++;
+
+            if (count == DASH_BIN_COUNT) {
+                isLong = true;
+                count = 0;
+                return "-";
+            } else {
+                isShort = true;
+                count = 0;
+                return ".";
+            }
+          } else {
+              isSilence = true;
+              return " ";
+          }
+
+        }
     }
 
     /**
